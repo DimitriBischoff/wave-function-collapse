@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Wave Function Collapse</title>
+	<style>
+		body {
+			display: flex;
+			flex-direction: row;
+		}
+		canvas {
+			background: transparent;
+			outline: 1px solid black;
+			image-rendering: pixelated;
+		}
+		#choice {
+			text-align: center;
+			flex-direction: column;
+			display: flex;
+		}
+		#choice canvas {
+			width: 200px;
+		}
+		#layers {
+			display: flex;
+			flex-direction: column;
+			margin: 0 10px;
+		}
+		#layers canvas {
+			max-width: 50px;
+		}
+	</style>
+</head>
+<body>
+	<div id='choice'>
+		<div>3</div>
+		<input type='range' value='3' min='2' max='10' step='1'/>
+		<button>Reset</button>
+	</div>
+	<div id='layers'></div>
+	<div id='generator'>
+		<div>5</div>
+		<input type='range' value='5' min='5' max='100' step='5'/>
+		<button>Generate</button>
+	</div>
+	<script src='canvas.js'></script>
+	<script src='update.js'></script>
+	<script>
+		let charset = 3;
+		const myCanvas = newCanvas(12, 12, true);
+		choice.appendChild(myCanvas);
+
+		update();
+
+		myCanvas.addEventListener('input', () => {
+			update();
+			getTiles();
+		});
+
+		
+		let state = {
+			tiles: [],
+			up:    [],
+			down:  [],
+			left:  [],
+			right: []
+		};
+
+		function handleRange() {
+			const input = choice.querySelector('input');
+			input.parentNode.children[0].innerHTML = input.value;
+
+			charset = input.value;
+			myCanvas.width = charset * 4;
+			myCanvas.height = charset * 4;
+
+			// myCanvas.style = `width: ${20*charset}px`;
+
+			update();
+			getTiles();
+		}
+
+		handleRange();
+		choice.querySelector('input').addEventListener('input', handleRange);
+
+		choice.querySelector('button').addEventListener('click', (e) => {
+			myCanvas.clear();
+			update();
+		});
+
+
+
+		function getTiles() {
+			state = {
+				tiles: [],
+				up:    [],
+				down:  [],
+				left:  [],
+				right: []
+			};
+
+			for (let row of layers.children) {
+				for (let c of row.children) {
+					state.tiles.push(c);
+					state.up.push(String(c.ctx.getImageData(0, 0, charset, 1).data));
+					state.down.push(String(c.ctx.getImageData(0, charset - 1, charset, 1).data));
+					state.left.push(String(c.ctx.getImageData(0, 0, 1, charset).data));
+					state.right.push(String(c.ctx.getImageData(charset - 1, 0, 1, charset).data));
+				}
+			}
+		}
+
+
+		let genSize = 2;
+		let tab = new Array(genSize*genSize);
+		let last = new Set();
+		const generatorCanvas = newCanvas(charset*genSize, charset*genSize);
+		generatorCanvas.style = `height: ${genSize*charset*10}px; max-height: 100vh`;
+
+		document.body.appendChild(generatorCanvas);
+
+		function handleRangeGen() {
+			const input = generator.querySelector('input');
+			input.parentNode.children[0].innerHTML = input.value;
+			genSize = input.value;
+			tab = new Array(genSize*genSize);
+			generatorCanvas.width = genSize*charset;
+			generatorCanvas.height = genSize*charset;
+			generatorCanvas.style = `height: ${genSize*charset*10}px; max-height: 100vh`;
+		}
+
+		handleRangeGen();
+		generator.querySelector('input').addEventListener('input', handleRangeGen);
+
+		function randInt(min, max) {
+			return Math.random() * (max - min) + min | 0;
+		}
+
+		function init() {
+			tab.fill([...state.tiles.keys()]);
+
+			let tile = randInt(0, state.tiles.length);
+			let x = randInt(0, genSize);
+			let y = randInt(0, genSize);
+			tab[y*genSize+x] = [tile];
+			checkAround(x, y);
+		}
+
+		function checkAround(x, y) {
+			const tile = tab[y*genSize+x];
+			// console.log('check around', x, y, tile);
+
+			if (y + 1 < genSize) {
+				const index = (y + 1)*genSize+x;
+				if (tab[index].length > 1) {
+					const down = new Set(tile.map(i => state.down[i]));
+					const last_length = tab[index].length;
+					tab[index] = tab[index].filter(i => down.has(state.up[i]));
+					// console.log('down', down, tab[index])
+					if (tab[index].length != last_length) {
+						last.add(index);
+					}
+				}
+			}
+			if (y - 1 >= 0) {
+				const index = (y - 1)*genSize+x;
+				if (tab[index].length > 1) {
+					const up = new Set(tile.map(i => state.up[i]));
+					const last_length = tab[index].length;
+					tab[index] = tab[index].filter(i => up.has(state.down[i]));
+					// console.log('up', up, tab[index])
+					if (tab[index].length != last_length) {
+						last.add(index);
+					}
+				}
+			}
+
+			if (x + 1 < genSize) {
+				const index = y*genSize+x+1;
+				if (tab[index].length > 1) {
+					const right = new Set(tile.map(i => state.right[i]));
+					const last_length = tab[index].length;
+					tab[index] = tab[index].filter(i => right.has(state.left[i]));
+					// console.log('right', right, tab[index])
+					if (tab[index].length != last_length) {
+						last.add(index);
+					}
+				}
+			}
+			if (x - 1 >= 0) {
+				const index = y*genSize+x-1;
+				if (tab[index].length > 1) {
+					const left = new Set(tile.map(i => state.left[i]));
+					const last_length = tab[index].length;
+					tab[index] = tab[index].filter(i => left.has(state.right[i]));
+					// console.log('left', left, tab[index])
+					if (tab[index].length != last_length) {
+						last.add(index);
+					}
+				}
+			}
+		}
+
+		function refresh() {
+			// console.log('last', last);
+
+			if (last.size) {
+				const indexs = last;
+				last = new Set();
+				for (let index of indexs) {
+					checkAround(index % genSize, index / genSize | 0);
+				}
+				return 1;
+			}
+			else {
+				const next = [...tab].map((a, i) => [i, a.length]).filter(a => a[1] > 1).sort((a, b) => a[1] - b[1]);
+				// console.log('next', next);
+				if (next.length) {
+					const index = next[0][0];
+					tab[index] = [tab[index][randInt(0, tab[index].length)]];
+					checkAround(index % genSize, index / genSize | 0);
+					return 1;
+				}
+			}
+			return 0;
+		}
+
+		function show() {
+			// console.log('tab', [...tab]);
+			generatorCanvas.clear();
+			for (let j = 0; j < tab.length; j++) {
+				if (tab[j].length > 1) {
+					generatorCanvas.ctx.globalAlpha = 1 / tab[j].length;
+					for (let i of tab[j]) {
+						generatorCanvas.ctx.drawImage(state.tiles[i], (j % genSize) * charset, (j / genSize | 0) * charset);
+						// await new Promise(r => setTimeout(r, 500));
+					}
+				}
+				else if (tab[j].length > 0) {
+					const i = tab[j][0];
+					generatorCanvas.ctx.globalAlpha = 1;
+					generatorCanvas.ctx.drawImage(state.tiles[i], (j % genSize) * charset, (j / genSize | 0) * charset);
+				}
+			}
+		}
+
+		// function show() {
+		// 	// console.log('tab', [...tab]);
+		// 	generatorCanvas.clear();
+		// 	for (let j = 0; j < tab.length; j++) {
+		// 		if (tab[j].length == 1) {
+		// 			const i = tab[j][0];
+		// 			generatorCanvas.ctx.drawImage(state.tiles[i], (j % genSize) * charset, (j / genSize | 0) * charset);
+		// 		}
+		// 	}
+		// }
+
+		generator.querySelector('button').addEventListener('click', async () => {
+			init();
+			while (refresh()) {
+				show();
+				await new Promise(r => setTimeout(r, 1));
+			}
+		});
+	</script>
+</body>
+</html>
