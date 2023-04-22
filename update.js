@@ -37,7 +37,7 @@ function update() {
 				}
 			}
 
-			for (let m = 0; m < 3; m++) {
+			for (let m = 0; m < mirror.length; m++) {
 				{
 					let c = newCanvas(size, size);
 					c.style.width = `${size*10}px`;
@@ -53,7 +53,7 @@ function update() {
 					}
 
 				}
-				for (let r = 0; r < 3; r++) {
+				for (let r = 0; r < rotate.length; r++) {
 					let c = newCanvas(size, size);
 					c.style.width = `${size*10}px`;
 

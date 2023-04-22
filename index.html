@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html>
 <head>
 	<title>Wave Function Collapse</title>
@@ -29,6 +28,9 @@
 		#layers canvas {
 			max-width: 50px;
 		}
+		canvas {
+			max-height: 97vh;
+		}
 	</style>
 </head>
 <body>
@@ -52,12 +54,12 @@
 
 		update();
 
-		myCanvas.addEventListener('input', () => {
+		myCanvas.addEventListener('change', () => {
 			update();
 			getTiles();
 		});
 
-		
+
 		let state = {
 			tiles: [],
 			up:    [],
@@ -114,8 +116,9 @@
 		let genSize = 2;
 		let tab = new Array(genSize*genSize);
 		let last = new Set();
+		let change = true;
 		const generatorCanvas = newCanvas(charset*genSize, charset*genSize);
-		generatorCanvas.style = `height: ${genSize*charset*10}px; max-height: 100vh`;
+		generatorCanvas.style = `height: ${genSize*charset*10}px`;
 
 		document.body.appendChild(generatorCanvas);
 
@@ -126,7 +129,7 @@
 			tab = new Array(genSize*genSize);
 			generatorCanvas.width = genSize*charset;
 			generatorCanvas.height = genSize*charset;
-			generatorCanvas.style = `height: ${genSize*charset*10}px; max-height: 100vh`;
+			generatorCanvas.style = `height: ${genSize*charset*10}px`;
 		}
 
 		handleRangeGen();
@@ -149,6 +152,9 @@
 		function checkAround(x, y) {
 			const tile = tab[y*genSize+x];
 			// console.log('check around', x, y, tile);
+			if (tile.length == 1) {
+				change = true;
+			}
 
 			if (y + 1 < genSize) {
 				const index = (y + 1)*genSize+x;
@@ -158,6 +164,9 @@
 					tab[index] = tab[index].filter(i => down.has(state.up[i]));
 					// console.log('down', down, tab[index])
 					if (tab[index].length != last_length) {
+						if (tab[index].length == 1) {
+							change = true;
+						}
 						last.add(index);
 					}
 				}
@@ -170,6 +179,9 @@
 					tab[index] = tab[index].filter(i => up.has(state.down[i]));
 					// console.log('up', up, tab[index])
 					if (tab[index].length != last_length) {
+						if (tab[index].length == 1) {
+							change = true;
+						}
 						last.add(index);
 					}
 				}
@@ -183,6 +195,9 @@
 					tab[index] = tab[index].filter(i => right.has(state.left[i]));
 					// console.log('right', right, tab[index])
 					if (tab[index].length != last_length) {
+						if (tab[index].length == 1) {
+							change = true;
+						}
 						last.add(index);
 					}
 				}
@@ -195,6 +210,9 @@
 					tab[index] = tab[index].filter(i => left.has(state.right[i]));
 					// console.log('left', left, tab[index])
 					if (tab[index].length != last_length) {
+						if (tab[index].length == 1) {
+							change = true;
+						}
 						last.add(index);
 					}
 				}
@@ -226,14 +244,12 @@
 		}
 
 		function show() {
-			// console.log('tab', [...tab]);
 			generatorCanvas.clear();
 			for (let j = 0; j < tab.length; j++) {
 				if (tab[j].length > 1) {
 					generatorCanvas.ctx.globalAlpha = 1 / tab[j].length;
 					for (let i of tab[j]) {
 						generatorCanvas.ctx.drawImage(state.tiles[i], (j % genSize) * charset, (j / genSize | 0) * charset);
-						// await new Promise(r => setTimeout(r, 500));
 					}
 				}
 				else if (tab[j].length > 0) {
@@ -245,7 +261,6 @@
 		}
 
 		// function show() {
-		// 	// console.log('tab', [...tab]);
 		// 	generatorCanvas.clear();
 		// 	for (let j = 0; j < tab.length; j++) {
 		// 		if (tab[j].length == 1) {
@@ -258,9 +273,13 @@
 		generator.querySelector('button').addEventListener('click', async () => {
 			init();
 			while (refresh()) {
-				show();
-				await new Promise(r => setTimeout(r, 1));
+				if (change) {
+					show();
+					change = false;
+					await new Promise(r => setTimeout(r, 1));
+				}
 			}
+			show();
 		});
 	</script>
 </body>

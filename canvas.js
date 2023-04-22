@@ -16,15 +16,19 @@ function newCanvas(w, h, drawable=false) {
 
 	if (drawable) {
 		c.inputEvent = new Event('input');
+		c.changeEvent = new Event('change');
+		c.color = [0,0,0,255];
+		c.pen = c.color;
 		c.draw = (e) => {
 			const y = (e.clientY - e.target.offsetTop) / e.target.offsetHeight * e.target.height | 0;
 			const x = (e.clientX - e.target.offsetLeft) / e.target.offsetWidth * e.target.width | 0;
 			if (c.button_draw == 0) {
-				drawPoint(c, x, y, [0,0,0,255]);
+				c.pen = c.color;
 			}
 			else if (c.button_draw == 2) {
-				drawPoint(c, x, y, [0,0,0,0]);
+				c.pen = [0,0,0,0];
 			}
+			drawPoint(c, x, y, c.pen);
 			c.dispatchEvent(c.inputEvent);
 		}
 		c.oncontextmenu = () => false;
@@ -36,8 +40,9 @@ function newCanvas(w, h, drawable=false) {
 			
 		});
 		
-		window.addEventListener('mouseup', () => {
+		window.addEventListener('mouseup', () => {	
 			c.removeEventListener('mousemove', c.draw);
+			c.dispatchEvent(c.changeEvent);
 		})
 	}
 	c.clear = () => {c.ctx.clearRect(0,0,c.width,c.height); c.img = undefined};
